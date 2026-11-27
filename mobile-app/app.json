@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "Access Door Control",
+    "slug": "access-door-mobile",
+    "version": "1.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.example.accessdoor",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Gunakan Face ID untuk verifikasi sebelum membuka pintu akses.",
+        "NSCameraUsageDescription": "Gunakan kamera untuk fitur Live Face Unlock dan pendaftaran wajah."
+      }
+    },
+    "android": {
+      "package": "com.example.accessdoor",
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.CAMERA"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#0f172a",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Izinkan Face ID untuk keamanan sebelum membuka pintu."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Izinkan kamera untuk mengambil foto pendaftaran wajah."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Izinkan kamera untuk fitur Live Face Unlock pintu."
+        }
+      ]
+    ]
+  }
+}

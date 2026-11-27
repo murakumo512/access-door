@@ -1,0 +1,23 @@
+# OS & Editor
+.DS_Store
+.vscode/
+*.log
+
+# Node.js / Web Server
+web-server/node_modules/
+web-server/data/
+mobile-app/node_modules/
+mobile-app/.expo/
+mobile-app/android/
+mobile-app/ios/
+*.env
+.env.*
+!.env.example
+
+# PlatformIO / ESP32 Build
+esp32-firmware/.pio/
+esp32-firmware/include/embedded_source.h
+*.bin
+*.elf
+*.apk
+*.ipa

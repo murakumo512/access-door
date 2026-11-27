@@ -1,0 +1,12 @@
+{
+  "name": "centralized-access-door",
+  "version": "1.0.0",
+  "description": "Centralized Door Access Control Server for ESP32 & Docker Swarm (Portainer)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  }
+}

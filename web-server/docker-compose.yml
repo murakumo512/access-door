@@ -1,0 +1,18 @@
+services:
+  access-door-web:
+    build: .
+    container_name: access-door-web
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-CHANGE_ME_ADMIN_PASSWORD}
+      - DEVICE_API_KEY=${DEVICE_API_KEY:-CHANGE_ME_DEVICE_API_KEY}
+      - DATA_DIR=/app/data
+      - TZ=Asia/Jakarta
+    volumes:
+      - access_door_data:/app/data
+
+volumes:
+  access_door_data:

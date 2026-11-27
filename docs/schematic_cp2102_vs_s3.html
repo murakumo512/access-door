@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Schematic Lengkap + WAGO: ESP32 CP2102 vs ESP32-S3</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0b1120; color: #e2e8f0; font-family: Inter, system-ui, -apple-system, sans-serif; }
+    .panel { background: #111827; border: 1px solid #1e293b; border-radius: 14px; }
+    .tab-btn { padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; border: 1px solid #334155; background: #0f172a; color: #94a3b8; }
+    .tab-btn.active { background: #059669; color: #ffffff; border-color: #10b981; }
+    svg text { user-select: none; }
+    .wire { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; opacity: 0.92; }
+  </style>
+</head>
+<body class="p-4 md:p-6 max-w-7xl mx-auto space-y-5">
+
+  <!-- HEADER -->
+  <div class="panel p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 border-emerald-500">
+    <div>
+      <h1 class="text-xl font-bold text-white">Schematic Lengkap + Blok WAGO: ESP32 CP2102 vs ESP32-S3</h1>
+      <p class="text-xs text-slate-400 mt-1">
+        Full wiring Box Panel (PSU 12V, LM2596 5V, WAGO PCT Hub, Relay, Level Shifter) ➔ Jalur Belden Cat6 ➔ WAGO SPL di Reader, EM Lock (+ Dioda 1N4007), &amp; Tombol Exit.
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <button class="tab-btn active" onclick="showTab('both', this)">Bandingkan Keduanya</button>
+      <button class="tab-btn" onclick="showTab('cp2102', this)">ESP32 CP2102 (WAGO Full)</button>
+      <button class="tab-btn" onclick="showTab('s3', this)">ESP32-S3 (WAGO Full)</button>
+    </div>
+  </div>
+
+  <!-- RINGKASAN PERBEDAAN BOARD -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+    <div class="panel p-3.5 border-l-4 border-sky-500 space-y-1">
+      <div class="font-bold text-sky-400">ESP32 CP2102 (30 / 38-pin) — Pakai di Pintu Utama</div>
+      <div class="text-slate-300">Cocok langsung dengan <strong>Shield DT-Y6593</strong>. Pin: Relay <code>GPIO4</code> · D0 <code>GPIO18</code> · D1 <code>GPIO19</code> · Buzzer <code>GPIO23</code> · Exit <code>GPIO27</code>.</div>
+    </div>
+    <div class="panel p-3.5 border-l-4 border-amber-500 space-y-1">
+      <div class="font-bold text-amber-400">ESP32-S3 DevKitC-1 (44-pin, USB-C)</div>
+      <div class="text-slate-300">Shield 30/38-pin <strong>tidak muat</strong> (pakai breakout 44-pin S3). Pin aman S3: Relay <code>GPIO4</code> · D0 <code>GPIO5</code> · D1 <code>GPIO6</code> · Buzzer <code>GPIO7</code> · Exit <code>GPIO15</code>.</div>
+    </div>
+  </div>
+
+  <!-- SCHEMATIC FULL GENERATOR CONTAINER -->
+  <div id="diagramsContainer" class="space-y-6"></div>
+
+  <!-- PANDUAN DETAIL WAGO PCT & SPL -->
+  <div class="panel p-5 space-y-4">
+    <h2 class="text-base font-bold text-emerald-400">Ringkasan Fungsi Tiap Blok WAGO (Berlaku untuk CP2102 &amp; ESP32-S3)</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+      <div class="bg-slate-900/90 p-3.5 rounded-xl border border-slate-700 space-y-1.5">
+        <div class="font-bold text-slate-200">1. WAGO PCT-215/218 (HUB GND)</div>
+        <div class="text-slate-400">Di dalam Box Panel. Semua terminal minus/ground bertemu di sini:</div>
+        <ul class="space-y-1 text-slate-300 font-mono text-[11px]">
+          <li>• PSU 12V (-V) &amp; LM2596 OUT-</li>
+          <li>• GND ESP32 &amp; GND Shifter &amp; Relay DC-</li>
+          <li>• Hitam Reader (via Cat6)</li>
+          <li>• Hitam EM Lock (2x Oranye Cat6)</li>
+          <li>• COM Tombol Exit (via Cat6)</li>
+        </ul>
+      </div>
+      <div class="bg-slate-900/90 p-3.5 rounded-xl border border-amber-700/60 space-y-1.5">
+        <div class="font-bold text-amber-300">2. WAGO PCT-213 (HUB +12V &amp; +5V)</div>
+        <div class="text-slate-400">Di dalam Box Panel untuk membagi tegangan:</div>
+        <ul class="space-y-1 text-slate-300 font-mono text-[11px]">
+          <li><strong class="text-red-400">PCT +12V:</strong> PSU +V ➔ IN+ LM2596, COM1 Relay, &amp; +12V Reader</li>
+          <li><strong class="text-orange-300">PCT +5V:</strong> OUT+ LM2596 ➔ VIN/5V ESP32, Relay DC+, &amp; Shifter HV</li>
+        </ul>
+      </div>
+      <div class="bg-slate-900/90 p-3.5 rounded-xl border border-cyan-700/60 space-y-1.5">
+        <div class="font-bold text-cyan-300">3. WAGO SPL di Pintu (Reader &amp; Magnet)</div>
+        <div class="text-slate-400">Sambungan lurus ke Belden Cat6 (tanpa isolasi):</div>
+        <ul class="space-y-1 text-slate-300 font-mono text-[11px]">
+          <li><strong>SPL-5 (Reader):</strong> 12V, GND, D0, D1, Beep ➔ Cat6</li>
+          <li><strong>SPL-3 (EM Lock):</strong> Merah (+ 2x Hijau Cat6) &amp; Hitam (- 2x Oranye Cat6) + <strong>Dioda 1N4007</strong> (Gelang Perak ke +, Hitam Polos ke -)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function buildSchematicCard(cfg) {
+      const isS3 = cfg.id === 's3';
+      const badgeCls = isS3
+        ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+        : 'bg-sky-500/20 text-sky-300 border-sky-500/30';
+      const accentStroke = isS3 ? '#f59e0b' : '#38bdf8';
+      const accentText = isS3 ? '#fbbf24' : '#38bdf8';
+
+      return `
+        <div id="card-${cfg.id}" class="panel p-4 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded font-mono text-xs font-bold border ${badgeCls}">${cfg.code}</span>
+              <h2 class="text-sm font-bold text-white">${cfg.title}</h2>
+            </div>
+            <span class="text-[11px] font-mono text-slate-400">${cfg.env} · v2.1.4</span>
+          </div>
+
+          <div class="overflow-x-auto">
+            <svg viewBox="0 0 1320 650" class="w-full min-w-[1060px] h-auto">
+              <!-- BACKGROUND & ZONES -->
+              <rect x="0" y="0" width="1320" height="650" rx="12" fill="#0b1222" />
+              <rect x="14" y="14" width="790" height="622" rx="10" fill="#0f172a" stroke="#1e293b" stroke-dasharray="6 4" />
+              <text x="28" y="34" fill="#64748b" font-size="11" font-weight="bold">ZONA A: DI DALAM BOX PANEL (PSU + WAGO PCT HUB + ESP32 + SHIFTER + RELAY)</text>
+              <rect x="822" y="14" width="484" height="622" rx="10" fill="#0f172a" stroke="#1e293b" stroke-dasharray="6 4" />
+              <text x="836" y="34" fill="#64748b" font-size="11" font-weight="bold">ZONA B: DI KUSEN &amp; PINTU (KABEL BELDEN CAT6 + WAGO SPL)</text>
+
+              <!-- 1. PSU 12V & STEP DOWN -->
+              <rect x="28" y="52" width="195" height="125" rx="8" fill="#172033" stroke="#ef4444" stroke-width="1.5" />
+              <text x="125" y="72" text-anchor="middle" fill="#fca5a5" font-size="12" font-weight="bold">PSU 12V DC + LM2596</text>
+              <text x="40" y="96" fill="#f87171" font-size="11" font-family="monospace">+12V (V+)</text>
+              <text x="40" y="116" fill="#94a3b8" font-size="11" font-family="monospace">GND  (V-)</text>
+              <line x1="38" y1="126" x2="213" y2="126" stroke="#334155" stroke-dasharray="3 2" />
+              <text x="40" y="146" fill="#fb923c" font-size="11" font-family="monospace">LM2596 OUT: +5V</text>
+              <text x="40" y="164" fill="#94a3b8" font-size="11" font-family="monospace">LM2596 OUT: GND</text>
+
+              <!-- 2. WAGO PCT-213 (+12V) -->
+              <rect x="28" y="205" width="195" height="96" rx="8" fill="#1c1917" stroke="#f59e0b" stroke-width="1.8" />
+              <text x="125" y="225" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="bold">WAGO PCT-213 (HUB +12V)</text>
+              <text x="40" y="246" fill="#fca5a5" font-size="10" font-family="monospace">1: PSU +12V (V+)</text>
+              <text x="40" y="263" fill="#fca5a5" font-size="10" font-family="monospace">2: Ke COM1 Relay</text>
+              <text x="40" y="280" fill="#fca5a5" font-size="10" font-family="monospace">3: Ke Reader +12V (Cat6)</text>
+
+              <!-- 3. WAGO PCT-213 (+5V) -->
+              <rect x="28" y="320" width="195" height="96" rx="8" fill="#1c1917" stroke="#fb923c" stroke-width="1.8" />
+              <text x="125" y="340" text-anchor="middle" fill="#fdba74" font-size="11" font-weight="bold">WAGO PCT-213 (HUB +5V)</text>
+              <text x="40" y="361" fill="#fed7aa" font-size="10" font-family="monospace">1: LM2596 OUT +5V</text>
+              <text x="40" y="378" fill="#fed7aa" font-size="10" font-family="monospace">2: ESP32 ${cfg.pin5v} &amp; HV Shifter</text>
+              <text x="40" y="395" fill="#fed7aa" font-size="10" font-family="monospace">3: Ke Relay DC+</text>
+
+              <!-- 4. WAGO PCT-218 (HUB GND) -->
+              <rect x="28" y="438" width="195" height="175" rx="8" fill="#1e293b" stroke="#94a3b8" stroke-width="1.8" />
+              <text x="125" y="458" text-anchor="middle" fill="#e2e8f0" font-size="11" font-weight="bold">WAGO PCT-218 (HUB GND)</text>
+              <text x="40" y="480" fill="#cbd5e1" font-size="10" font-family="monospace">1: PSU -V &amp; LM2596 OUT-</text>
+              <text x="40" y="498" fill="#cbd5e1" font-size="10" font-family="monospace">2: GND ESP32</text>
+              <text x="40" y="516" fill="#cbd5e1" font-size="10" font-family="monospace">3: GND Shifter &amp; Relay DC-</text>
+              <text x="40" y="534" fill="#cbd5e1" font-size="10" font-family="monospace">4: Reader GND (Cat6)</text>
+              <text x="40" y="552" fill="#cbd5e1" font-size="10" font-family="monospace">5: EM Lock - (2x Oranye)</text>
+              <text x="40" y="570" fill="#cbd5e1" font-size="10" font-family="monospace">6: Exit COM (Cat6)</text>
+
+              <!-- 5. ESP32 BOARD -->
+              <rect x="275" y="56" width="225" height="335" rx="10" fill="#1e293b" stroke="${accentStroke}" stroke-width="2" />
+              <text x="387" y="82" text-anchor="middle" fill="${accentText}" font-size="13" font-weight="bold">${cfg.boardTitle}</text>
+              <text x="387" y="98" text-anchor="middle" fill="#94a3b8" font-size="10">${cfg.boardSub}</text>
+
+              <!-- ESP32 Left Pins -->
+              <circle cx="275" cy="130" r="5" fill="#fb923c" /><text x="287" y="134" fill="#fdba74" font-size="11" font-family="monospace">${cfg.pin5v}</text>
+              <circle cx="275" cy="162" r="5" fill="#94a3b8" /><text x="287" y="166" fill="#cbd5e1" font-size="11" font-family="monospace">GND</text>
+              <circle cx="275" cy="194" r="5" fill="#fde047" /><text x="287" y="198" fill="#fef08a" font-size="11" font-family="monospace">3V3 ➔ LV Shifter</text>
+              <circle cx="275" cy="238" r="5" fill="#c084fc" /><text x="287" y="242" fill="#e9d5ff" font-size="11" font-family="monospace">${cfg.pinExit} (EXIT)</text>
+
+              <!-- ESP32 Right Pins -->
+              <circle cx="500" cy="130" r="5" fill="#34d399" /><text x="488" y="134" text-anchor="end" fill="#6ee7b7" font-size="11" font-family="monospace">${cfg.pinRelay} (RELAY)</text>
+              <circle cx="500" cy="182" r="5" fill="#22c55e" /><text x="488" y="186" text-anchor="end" fill="#86efac" font-size="11" font-family="monospace">${cfg.pinD0} (D0)</text>
+              <circle cx="500" cy="214" r="5" fill="#e2e8f0" /><text x="488" y="218" text-anchor="end" fill="#f8fafc" font-size="11" font-family="monospace">${cfg.pinD1} (D1)</text>
+              <circle cx="500" cy="246" r="5" fill="#facc15" /><text x="488" y="250" text-anchor="end" fill="#fde047" font-size="11" font-family="monospace">${cfg.pinBeep} (BEEP)</text>
+
+              ${isS3 ? `
+                <rect x="290" y="290" width="195" height="82" rx="6" fill="#450a0a" stroke="#ef4444" stroke-dasharray="3 2" />
+                <text x="387" y="308" text-anchor="middle" fill="#fca5a5" font-size="10" font-weight="bold">PIN HINDARI DI S3:</text>
+                <text x="387" y="324" text-anchor="middle" fill="#fecaca" font-size="9.5" font-family="monospace">19/20 = USB Native</text>
+                <text x="387" y="339" text-anchor="middle" fill="#fecaca" font-size="9.5" font-family="monospace">26-37 = Flash/PSRAM</text>
+                <text x="387" y="354" text-anchor="middle" fill="#fecaca" font-size="9.5" font-family="monospace">23 &amp; 27 = Tidak Ada</text>
+              ` : `
+                <rect x="290" y="295" width="195" height="72" rx="6" fill="#0c4a6e" stroke="#38bdf8" stroke-dasharray="3 2" />
+                <text x="387" y="315" text-anchor="middle" fill="#bae6fd" font-size="10" font-weight="bold">SHIELD DT-Y6593:</text>
+                <text x="387" y="332" text-anchor="middle" fill="#e0f2fe" font-size="9.5" font-family="monospace">Tinggal colok board</text>
+                <text x="387" y="348" text-anchor="middle" fill="#e0f2fe" font-size="9.5" font-family="monospace">30/38-pin CP2102</text>
+              `}
+
+              <!-- 6. LEVEL SHIFTER -->
+              <rect x="565" y="145" width="215" height="145" rx="8" fill="#172033" stroke="#eab308" stroke-width="1.5" />
+              <text x="672" y="167" text-anchor="middle" fill="#fde047" font-size="12" font-weight="bold">LEVEL SHIFTER 3.3V↔5V</text>
+              <text x="578" y="190" fill="#86efac" font-size="10.5" font-family="monospace">LV1(${cfg.pinD0Short}) ↔ HV1 (D0 Hijau)</text>
+              <text x="578" y="212" fill="#f8fafc" font-size="10.5" font-family="monospace">LV2(${cfg.pinD1Short}) ↔ HV2 (D1 Putih)</text>
+              <text x="578" y="234" fill="#fde047" font-size="10.5" font-family="monospace">LV3(${cfg.pinBeepShort}) ↔ HV3 (Beep Kng)</text>
+              <text x="578" y="262" fill="#fef08a" font-size="10" font-family="monospace">LV=3.3V | HV=5V | GND=PCT</text>
+
+              <!-- 7. RELAY 5V -->
+              <rect x="565" y="325" width="215" height="150" rx="8" fill="#172033" stroke="#10b981" stroke-width="1.5" />
+              <text x="672" y="347" text-anchor="middle" fill="#34d399" font-size="12" font-weight="bold">RELAY 5V (Active HIGH)</text>
+              <text x="578" y="372" fill="#6ee7b7" font-size="10.5" font-family="monospace">IN1  ➔ ${cfg.pinRelay}</text>
+              <text x="578" y="392" fill="#fdba74" font-size="10.5" font-family="monospace">DC+  ➔ WAGO PCT +5V</text>
+              <text x="578" y="412" fill="#cbd5e1" font-size="10.5" font-family="monospace">DC-  ➔ WAGO PCT GND</text>
+              <text x="578" y="434" fill="#f87171" font-size="10.5" font-family="monospace">COM1 ➔ WAGO PCT +12V</text>
+              <text x="578" y="454" fill="#38bdf8" font-size="10.5" font-family="monospace">NC1  ➔ 2x Hijau Cat6 (+)</text>
+
+              <!-- ZONA B: WAGO SPL-5 & READER -->
+              <rect x="840" y="56" width="205" height="175" rx="8" fill="#172033" stroke="#0ea5e9" stroke-width="1.8" />
+              <text x="942" y="76" text-anchor="middle" fill="#7dd3fc" font-size="11.5" font-weight="bold">WAGO SPL-5 (READER)</text>
+              <text x="852" y="100" fill="#fca5a5" font-size="10" font-family="monospace">1: +12V (Coklat Cat6)</text>
+              <text x="852" y="122" fill="#cbd5e1" font-size="10" font-family="monospace">2: GND  (Pth-Ckl Cat6)</text>
+              <text x="852" y="144" fill="#86efac" font-size="10" font-family="monospace">3: D0   (Hijau Cat6)</text>
+              <text x="852" y="166" fill="#f8fafc" font-size="10" font-family="monospace">4: D1   (Pth-Hijau Cat6)</text>
+              <text x="852" y="188" fill="#fde047" font-size="10" font-family="monospace">5: BEEP (Oranye Cat6)</text>
+              <text x="852" y="214" fill="#64748b" font-size="9.5" font-family="monospace">Barrel warna-warni 5 jalur</text>
+
+              <rect x="1080" y="56" width="210" height="175" rx="8" fill="#172033" stroke="#10b981" stroke-width="1.5" />
+              <text x="1185" y="76" text-anchor="middle" fill="#6ee7b7" font-size="11.5" font-weight="bold">WIEGAND RFID READER</text>
+              <text x="1094" y="100" fill="#fca5a5" font-size="10.5" font-family="monospace">Merah (+12V) ➔ SPL-5 #1</text>
+              <text x="1094" y="122" fill="#cbd5e1" font-size="10.5" font-family="monospace">Hitam (GND)  ➔ SPL-5 #2</text>
+              <text x="1094" y="144" fill="#86efac" font-size="10.5" font-family="monospace">Hijau (D0)   ➔ SPL-5 #3</text>
+              <text x="1094" y="166" fill="#f8fafc" font-size="10.5" font-family="monospace">Putih (D1)   ➔ SPL-5 #4</text>
+              <text x="1094" y="188" fill="#fde047" font-size="10.5" font-family="monospace">Kuning (BZ)  ➔ SPL-5 #5</text>
+
+              <!-- ZONA B: WAGO SPL-3 + EM LOCK + DIODA -->
+              <rect x="840" y="265" width="215" height="205" rx="8" fill="#172033" stroke="#06b6d4" stroke-width="1.8" />
+              <text x="947" y="286" text-anchor="middle" fill="#67e8f9" font-size="11.5" font-weight="bold">WAGO SPL-3 (EM LOCK)</text>
+              <text x="852" y="310" fill="#64748b" font-size="10" font-family="monospace">Slot 1 (Kiri): Kosong</text>
+              <text x="852" y="332" fill="#38bdf8" font-size="10" font-family="monospace">Slot 2 (Tengah): +12V NC1</text>
+              <text x="852" y="348" fill="#7dd3fc" font-size="9.5" font-family="monospace">  (2x Hijau+PthHijau Cat6)</text>
+              <text x="852" y="370" fill="#cbd5e1" font-size="10" font-family="monospace">Slot 3 (Kanan): GND</text>
+              <text x="852" y="386" fill="#94a3b8" font-size="9.5" font-family="monospace">  (2x Oranye+PthOrn Cat6)</text>
+              <rect x="852" y="400" width="190" height="58" rx="6" fill="#0f172a" stroke="#f59e0b" />
+              <text x="860" y="417" fill="#fbbf24" font-size="10" font-weight="bold">DIODA 1N4007 (Paralel 2↔3):</text>
+              <text x="860" y="433" fill="#e2e8f0" font-size="9.5" font-family="monospace">Gelang Perak ➔ Slot 2 (+)</text>
+              <text x="860" y="448" fill="#e2e8f0" font-size="9.5" font-family="monospace">Hitam Polos  ➔ Slot 3 (-)</text>
+
+              <rect x="1085" y="265" width="205" height="145" rx="8" fill="#172033" stroke="#0ea5e9" stroke-width="1.5" />
+              <text x="1187" y="286" text-anchor="middle" fill="#7dd3fc" font-size="11.5" font-weight="bold">EM LOCK 280KG</text>
+              <text x="1098" y="316" fill="#f87171" font-size="10.5" font-family="monospace">Merah (+12V) ➔ Slot 2</text>
+              <text x="1098" y="340" fill="#cbd5e1" font-size="10.5" font-family="monospace">Hitam (GND)  ➔ Slot 3</text>
+              <text x="1098" y="374" fill="#94a3b8" font-size="9.5" font-family="monospace">Fail-Safe: 12V ada=Kunci</text>
+              <text x="1098" y="392" fill="#94a3b8" font-size="9.5" font-family="monospace">Relay putus=Buka pintu</text>
+
+              <!-- ZONA B: TOMBOL EXIT -->
+              <rect x="840" y="505" width="450" height="108" rx="8" fill="#172033" stroke="#a855f7" stroke-width="1.5" />
+              <text x="1065" y="527" text-anchor="middle" fill="#d8b4fe" font-size="12" font-weight="bold">TOMBOL EXIT DALAM PINTU (via Cat6 / WAGO SPL-2)</text>
+              <text x="858" y="555" fill="#e9d5ff" font-size="11" font-family="monospace">Terminal NO  ➔ Kawat Biru Cat6       ➔ ${cfg.pinExit} ESP32</text>
+              <text x="858" y="578" fill="#cbd5e1" font-size="11" font-family="monospace">Terminal COM ➔ Kawat Putih-Biru Cat6 ➔ WAGO PCT-218 (HUB GND)</text>
+              <text x="858" y="600" fill="#94a3b8" font-size="9.5" font-family="monospace">Menggunakan INPUT_PULLUP internal ESP32 (ditekan = LOW)</text>
+
+              <!-- WIRES -->
+              <!-- PSU to PCT -->
+              <path class="wire" stroke="#ef4444" d="M 28 96 L 18 96 L 18 242 L 28 242" />
+              <path class="wire" stroke="#fb923c" d="M 28 144 L 22 144 L 22 358 L 28 358" />
+              <path class="wire" stroke="#94a3b8" d="M 28 114 L 12 114 L 12 478 L 28 478" />
+              <!-- PCT +5V & GND to ESP32 -->
+              <path class="wire" stroke="#fb923c" d="M 223 368 L 245 368 L 245 130 L 275 130" />
+              <path class="wire" stroke="#94a3b8" d="M 223 494 L 258 494 L 258 162 L 275 162" />
+              <!-- ESP32 to Shifter -->
+              <path class="wire" stroke="#22c55e" d="M 500 182 L 565 186" />
+              <path class="wire" stroke="#e2e8f0" d="M 500 214 L 565 208" />
+              <path class="wire" stroke="#facc15" d="M 500 246 L 565 230" />
+              <!-- ESP32 to Relay -->
+              <path class="wire" stroke="#34d399" d="M 500 130 L 535 130 L 535 368 L 565 368" />
+              <!-- Shifter to WAGO SPL-5 -->
+              <path class="wire" stroke="#22c55e" d="M 780 186 L 812 186 L 812 140 L 840 140" />
+              <path class="wire" stroke="#e2e8f0" d="M 780 208 L 818 208 L 818 162 L 840 162" />
+              <path class="wire" stroke="#facc15" d="M 780 230 L 824 230 L 824 184 L 840 184" />
+              <!-- WAGO SPL-5 to Reader -->
+              <path class="wire" stroke="#ef4444" d="M 1045 96 L 1080 96" />
+              <path class="wire" stroke="#94a3b8" d="M 1045 118 L 1080 118" />
+              <path class="wire" stroke="#22c55e" d="M 1045 140 L 1080 140" />
+              <path class="wire" stroke="#e2e8f0" d="M 1045 162 L 1080 162" />
+              <path class="wire" stroke="#facc15" d="M 1045 184 L 1080 184" />
+              <!-- Relay NC1 & PCT GND to WAGO SPL-3 -->
+              <path class="wire" stroke="#38bdf8" d="M 780 450 L 812 450 L 812 328 L 840 328" />
+              <path class="wire" stroke="#94a3b8" d="M 223 550 L 548 550 L 548 492 L 826 492 L 826 368 L 840 368" />
+              <!-- SPL-3 to EM Lock -->
+              <path class="wire" stroke="#f87171" d="M 1055 328 L 1085 312" />
+              <path class="wire" stroke="#94a3b8" d="M 1055 368 L 1085 336" />
+              <!-- Exit button to ESP32 & PCT GND -->
+              <path class="wire" stroke="#c084fc" d="M 840 552 L 265 552 L 265 238 L 275 238" />
+              <path class="wire" stroke="#94a3b8" d="M 223 568 L 840 568" />
+            </svg>
+          </div>
+        </div>
+      `;
+    }
+
+    const CONFIGS = [
+      {
+        id: 'cp2102',
+        code: 'ESP32_CP2102',
+        title: 'Schematic 1 (Full WAGO): ESP32 WROOM-32 CP2102 + Shield DT-Y6593',
+        env: 'env:esp32dev',
+        boardTitle: 'ESP32 CP2102 (30/38-Pin)',
+        boardSub: 'Pasang di Shield DT-Y6593',
+        pin5v: 'VIN (5V)',
+        pinRelay: 'GPIO 4',
+        pinD0: 'GPIO 18',
+        pinD1: 'GPIO 19',
+        pinBeep: 'GPIO 23',
+        pinExit: 'GPIO 27',
+        pinD0Short: 'G18',
+        pinD1Short: 'G19',
+        pinBeepShort: 'G23'
+      },
+      {
+        id: 's3',
+        code: 'ESP32_S3',
+        title: 'Schematic 2 (Full WAGO): ESP32-S3 DevKitC-1 (44-Pin USB-C)',
+        env: 'env:esp32s3',
+        boardTitle: 'ESP32-S3 (44-Pin)',
+        boardSub: 'Breakout S3 / Manual Wiring',
+        pin5v: '5V IN',
+        pinRelay: 'GPIO 4',
+        pinD0: 'GPIO 5',
+        pinD1: 'GPIO 6',
+        pinBeep: 'GPIO 7',
+        pinExit: 'GPIO 15',
+        pinD0Short: 'G5',
+        pinD1Short: 'G6',
+        pinBeepShort: 'G7'
+      }
+    ];
+
+    document.getElementById('diagramsContainer').innerHTML = CONFIGS.map(buildSchematicCard).join('');
+
+    function showTab(mode, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      document.getElementById('card-cp2102').style.display = (mode === 'both' || mode === 'cp2102') ? 'block' : 'none';
+      document.getElementById('card-s3').style.display = (mode === 'both' || mode === 's3') ? 'block' : 'none';
+    }
+  </script>
+</body>
+</html>
